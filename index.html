@@ -44,16 +44,18 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, createContext, useContext } = React;
+        const { useState, useEffect, createContext, useContext, useRef, useMemo } = React;
         const { motion, useSpring, useMotionValue } = window.Motion;
 
         // 1. THE BREATH-SYNC ENGINE: 6 BPM Global State
         const MeiContext = createContext();
         const MeiProvider = ({ children }) => {
             const [volume, setVolume] = useState('whisper'); // Whisper, Talk, Shout, Laugh, Cry
+            const [hidingPlace, setHidingPlace] = useState(false);
+            const [isTyping, setIsTyping] = useState(false);
             
             return (
-                <MeiContext.Provider value={{ volume, setVolume }}>
+                <MeiContext.Provider value={{ volume, setVolume, hidingPlace, setHidingPlace, isTyping, setIsTyping }}>
                     {children}
                 </MeiContext.Provider>
             );
@@ -61,6 +63,7 @@
 
         // 4. WAYFINDING NAVIGATION: A gentle, warm ambient sunlight that follows the cursor instead of a harsh glow
         const DiffusedCursor = () => {
+            const { hidingPlace } = useContext(MeiContext);
             const cursorX = useMotionValue(window.innerWidth / 2);
             const cursorY = useMotionValue(window.innerHeight / 2);
             const springConfig = { damping: 40, stiffness: 80, mass: 1 };
@@ -76,14 +79,15 @@
                 return () => window.removeEventListener("mousemove", moveCursor);
             }, [cursorX, cursorY]);
 
+            // If hiding, reduce glow strictly to emulate night
+            const gradient = hidingPlace 
+                ? 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(10,10,15,0) 50%)' 
+                : 'radial-gradient(circle, rgba(255,228,196,0.5) 0%, rgba(253,251,247,0) 70%)';
+
             return (
                 <motion.div 
-                    className="pointer-events-none fixed top-0 left-0 w-[600px] h-[600px] -mt-[300px] -ml-[300px] z-0 rounded-full blur-3xl opacity-60"
-                    style={{ 
-                        x: mouseX, 
-                        y: mouseY,
-                        background: 'radial-gradient(circle, rgba(255,228,196,0.5) 0%, rgba(253,251,247,0) 70%)' // Warm peach/sunlight gradient
-                    }} 
+                    className="pointer-events-none fixed top-0 left-0 w-[600px] h-[600px] -mt-[300px] -ml-[300px] z-0 rounded-full blur-3xl opacity-60 transition-colors duration-1000"
+                    style={{ x: mouseX, y: mouseY, background: gradient }} 
                 />
             );
         };
@@ -105,78 +109,47 @@
 
         // THE PARTICLE SYSTEM: Affective Leaves
         const Leaf = ({ index, emotion }) => {
-            // Generate deterministic organic physics for this specific leaf on mount
-            const leaf = React.useMemo(() => ({
-                size: 20 + Math.random() * 80,           // Massive size variance for depth (foreground/background)
-                startX: Math.random() * 120 - 10,        // Spawns smoothly across width
-                startY: Math.random() * 120 - 10,        // Spawns smoothly across height
+            const leaf = useMemo(() => ({
+                size: 20 + Math.random() * 80,
+                startX: Math.random() * 120 - 10,
+                startY: Math.random() * 120 - 10,
                 delay: Math.random() * 5,
-                speed: 0.5 + Math.random(),              // Trajectory speed variance
-                sway: (Math.random() - 0.5) * 40,        // Unique horizontal path turbulence
-                rotStart: Math.random() * 360,           // Start at random angle
-                rotEnd: (Math.random() * 720 + 360) * (Math.random() > 0.5 ? 1 : -1), // Spin direction and speed
-                blur: Math.random() > 0.6 ? Math.random() * 8 : 0, // Depth of Field blur mapping
-                opacity: 0.2 + Math.random() * 0.6       // Organic leaf transparency
+                speed: 0.5 + Math.random(),
+                sway: (Math.random() - 0.5) * 40,
+                rotStart: Math.random() * 360,
+                rotEnd: (Math.random() * 720 + 360) * (Math.random() > 0.5 ? 1 : -1),
+                blur: Math.random() > 0.6 ? Math.random() * 8 : 0,
+                opacity: 0.2 + Math.random() * 0.6
             }), []);
 
             let initialInner = { rotate: leaf.rotStart };
             let animateInner = {};
             let transitionInner = { repeat: Infinity, ease: "linear" };
             let styleOuter = { 
-                left: `${leaf.startX}vw`, 
-                top: `${leaf.startY}vh`, 
-                width: leaf.size, 
-                height: leaf.size,
-                filter: `blur(${leaf.blur}px)`
+                left: `${leaf.startX}vw`, top: `${leaf.startY}vh`, 
+                width: leaf.size, height: leaf.size, filter: `blur(${leaf.blur}px)`
             };
 
             if (emotion === 'neutral') {
-                animateInner = { 
-                    y: [0, leaf.sway * 1.5, 0], 
-                    x: [0, leaf.sway, 0], 
-                    rotate: [leaf.rotStart, leaf.rotStart + (leaf.sway * 2)] 
-                };
+                animateInner = { y: [0, leaf.sway * 1.5, 0], x: [0, leaf.sway, 0], rotate: [leaf.rotStart, leaf.rotStart + (leaf.sway * 2)] };
                 transitionInner = { duration: 15 * leaf.speed + 10, repeat: Infinity, ease: "easeInOut", delay: leaf.delay };
             } else if (emotion === 'sad') {
                 styleOuter.top = '-15vh';
-                animateInner = { 
-                    y: ['-10vh', '115vh'], 
-                    x: ['0vw', `${leaf.sway * 2}vw`, `${-leaf.sway}vw`], 
-                    rotate: [leaf.rotStart, leaf.rotStart + leaf.rotEnd / 4] 
-                };
+                animateInner = { y: ['-10vh', '115vh'], x: ['0vw', `${leaf.sway * 2}vw`, `${-leaf.sway}vw`], rotate: [leaf.rotStart, leaf.rotStart + leaf.rotEnd / 4] };
                 transitionInner = { duration: 25 * leaf.speed + 20, repeat: 1, ease: "linear", delay: leaf.delay };
             } else if (emotion === 'angry') {
                 styleOuter.left = '-15vw';
-                animateInner = { 
-                    x: ['-20vw', '120vw'], 
-                    y: [0, leaf.sway * 4], 
-                    rotate: [leaf.rotStart, leaf.rotStart + leaf.rotEnd] 
-                };
+                animateInner = { x: ['-20vw', '120vw'], y: [0, leaf.sway * 4], rotate: [leaf.rotStart, leaf.rotStart + leaf.rotEnd] };
                 transitionInner = { duration: 4 * leaf.speed + 1.5, repeat: 1, ease: "easeIn", delay: leaf.delay / 2 };
             } else if (emotion === 'overwhelmed') {
                 styleOuter.top = '-20vh';
-                animateInner = { 
-                    y: ['-20vh', '120vh'], 
-                    x: [`${leaf.sway * 2}vw`, `${-leaf.sway * 3}vw`], 
-                    rotate: [leaf.rotStart, leaf.rotStart + leaf.rotEnd] 
-                };
+                animateInner = { y: ['-20vh', '120vh'], x: [`${leaf.sway * 2}vw`, `${-leaf.sway * 3}vw`], rotate: [leaf.rotStart, leaf.rotStart + leaf.rotEnd] };
                 transitionInner = { duration: 8 * leaf.speed + 4, repeat: 1, ease: "linear", delay: leaf.delay };
             }
 
             return (
-                <motion.div
-                    className="absolute drop-shadow-sm pointer-events-none"
-                    style={styleOuter}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: leaf.opacity }}
-                    transition={{ duration: 3, delay: leaf.delay }}
-                >
-                    <motion.div 
-                        className="w-full h-full text-[#8BA989]"
-                        initial={initialInner}
-                        animate={animateInner}
-                        transition={transitionInner}
-                    >
+                <motion.div className="absolute drop-shadow-sm pointer-events-none" style={styleOuter} initial={{ opacity: 0 }} animate={{ opacity: leaf.opacity }} transition={{ duration: 3, delay: leaf.delay }}>
+                    <motion.div className="w-full h-full text-[#8BA989]" initial={initialInner} animate={animateInner} transition={transitionInner}>
                         <svg viewBox="0 0 100 100" className="w-full h-full" fill="currentColor">
                             <path d="M50 0 C80 30, 95 60, 50 100 C5 60, 20 30, 50 0 Z" />
                             <path d="M50 10 L50 90" stroke="rgba(255,255,255,0.4)" strokeWidth="3" strokeLinecap="round" fill="none" />
@@ -187,10 +160,8 @@
         };
 
         const LeavesSystem = ({ emotion }) => {
-            // Increased density to emphasize the rich organic physics
             const numLeaves = emotion === 'overwhelmed' ? 50 : emotion === 'sad' ? 12 : emotion === 'angry' ? 20 : 8;
             const leaves = Array.from({ length: numLeaves }).map((_, i) => i);
-
             return (
                 <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
                     {leaves.map(i => <Leaf key={`${emotion}-${i}`} index={i} emotion={emotion} />)}
@@ -198,23 +169,42 @@
             );
         };
 
+        // THE PEBBLE: Mei's physical organic anchor
+        const ThePebble = () => {
+            const { volume, isTyping } = useContext(MeiContext);
+            const pebbleColors = {
+                'neutral': '#D4D4D8',
+                'sad': '#93C5FD',
+                'angry': '#FCA5A5',
+                'overwhelmed': '#C4B5FD'
+            };
+            const pColor = pebbleColors[volume] || '#D4D4D8';
+
+            return (
+                <motion.div
+                    drag
+                    whileDrag={{ scale: 1.1, cursor: "grabbing" }}
+                    dragConstraints={{ left: -300, right: 300, top: -300, bottom: 300 }}
+                    dragElastic={0.2}
+                    className="absolute z-20 cursor-grab"
+                    style={{ width: '120px', height: '90px', top: '12vh', right: '15vw' }}
+                    animate={isTyping ? { scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] } : { y: [0, -10, 0], rotate: [0, 2, -2, 0] }}
+                    transition={isTyping ? { duration: 0.6, repeat: Infinity } : { duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                    <svg viewBox="0 0 100 80" className="w-full h-full drop-shadow-xl opacity-80" fill={pColor} style={{ filter: 'blur(1px)' }}>
+                        <path d="M 20 40 C 5 15, 75 5, 85 30 C 95 55, 65 75, 45 75 C 25 75, 35 65, 20 40 Z" />
+                    </svg>
+                </motion.div>
+            );
+        };
+
         // CINEMATIC INTRO TEXT
         const IntroText = () => (
             <div className="flex flex-col items-center justify-center w-full h-full pointer-events-none z-10 px-8">
-                <motion.h1 
-                    initial={{ opacity: 0, filter: "blur(10px)" }}
-                    animate={{ opacity: 0.7, filter: "blur(0px)" }}
-                    transition={{ duration: 4, ease: "easeOut" }}
-                    className="text-4xl md:text-5xl font-light tracking-wide text-[#8B7E9A] text-left w-full max-w-2xl"
-                >
+                <motion.h1 initial={{ opacity: 0, filter: "blur(10px)" }} animate={{ opacity: 0.7, filter: "blur(0px)" }} transition={{ duration: 4, ease: "easeOut" }} className="text-4xl md:text-5xl font-light tracking-wide text-[#8B7E9A] text-left w-full max-w-2xl">
                     i don't know....
                 </motion.h1>
-                <motion.h1 
-                    initial={{ opacity: 0, filter: "blur(10px)" }}
-                    animate={{ opacity: 0.7, filter: "blur(0px)" }}
-                    transition={{ duration: 4, delay: 3, ease: "easeOut" }}
-                    className="text-4xl md:text-5xl font-light tracking-wide text-[#8B7E9A] text-right mt-6 w-full max-w-2xl"
-                >
+                <motion.h1 initial={{ opacity: 0, filter: "blur(10px)" }} animate={{ opacity: 0.7, filter: "blur(0px)" }} transition={{ duration: 4, delay: 3, ease: "easeOut" }} className="text-4xl md:text-5xl font-light tracking-wide text-[#8B7E9A] text-right mt-6 w-full max-w-2xl">
                     ....what to say.
                 </motion.h1>
             </div>
@@ -222,40 +212,64 @@
 
         // CHAT INTERFACE: Zero hard lines
         const ChatFlow = ({ apiKey }) => {
-            const { setVolume } = useContext(MeiContext);
+            const { setVolume, setHidingPlace, setIsTyping } = useContext(MeiContext);
             const [input, setInput] = useState('');
             const [messages, setMessages] = useState([]);
             const [loading, setLoading] = useState(false);
-            const chatEndRef = React.useRef(null);
-
-            const systemInstruction = {
-                "role": "user",
-                "parts": [{ "text": "System Instruction: You are Mei, a bicultural pediatric counselor in Greenpoint. You run 'I Don't Know What To Say'. You are calm, friendly, grounded. Never be hyper. Keep responses to 1-2 soft sentences." }]
-            };
-            const systemAck = { "role": "model", "parts": [{ "text": "Understood. I am Mei. I am listening softly." }] };
+            const chatEndRef = useRef(null);
 
             useEffect(() => {
-                setMessages([
-                    { role: 'model', text: "How are you feeling today?" }
-                ]);
+                setMessages([{ role: 'model', text: "How are you feeling today?" }]);
             }, []);
 
             useEffect(() => {
                 chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }, [messages]);
 
+            useEffect(() => {
+                setIsTyping(input.trim().length > 0);
+            }, [input, setIsTyping]);
+
             const handleSend = async (e) => {
                 e.preventDefault();
-                if (!input.trim()) return;
+                if (!input.trim() || loading) return;
                 
                 const userText = input.trim();
                 setInput('');
                 
                 setMessages(prev => [...prev, { role: 'user', text: userText }]);
                 setVolume(analyzeSentiment(userText));
+                
+                const lText = userText.toLowerCase();
+
+                // Detect The Hiding Place
+                const hideTriggers = ["hide", "too bright", "darkness", "scared"];
+                if (hideTriggers.some(t => lText.includes(t))) setHidingPlace(true);
+                else if (lText.includes("light") || lText.includes("come back") || lText.includes("better")) setHidingPlace(false);
+
+                // Crisis Escalation Protocol
+                const escalators = ["bridge", "jump", "stop the pain", "pain forever", "die", "hurt myself", "end my life", "kill myself"];
+                if (escalators.some(t => lText.includes(t))) {
+                    setLoading(true);
+                    setTimeout(() => {
+                        setLoading(false);
+                        setMessages(prev => [...prev, { role: 'model', text: "Thank you for being so brave and telling me exactly how heavy things feel right now. Because you're hurting that much, we are going to press pause." }]);
+                        setTimeout(() => {
+                            setMessages(prev => [...prev, { role: 'system', text: "<b>SYSTEM OVERRIDE: CLINICAL ESCALATION ENGAGED</b><br>Silent PagerDuty alert dispatched to clinical supervisor.<br>988 Crisis Copilot module engaged." }]);
+                            setTimeout(() => {
+                                setMessages(prev => [...prev, { role: 'model', text: "You don't have to carry this alone. I'm connecting us to a specialist friend of mine who knows exactly how to help when things feel way too heavy. They are hopping into our chat right now to help carry the load." }]);
+                                setTimeout(() => {
+                                    setMessages(prev => [...prev, { role: 'system', text: "<b>988 COPILOT CONNECTED.</b><br>Live clinical counselor has entered the session. Handoff complete." }]);
+                                }, 3500);
+                            }, 2500);
+                        }, 1500);
+                    }, 1000);
+                    return; // Halt AI generation
+                }
+
                 setLoading(true);
 
-                const rawMessages = [...messages, { role: 'user', text: userText }];
+                const rawMessages = [...messages, { role: 'user', text: userText }].filter(m => m.role !== 'system');
                 const apiHistory = [];
                 
                 rawMessages.forEach(m => {
@@ -272,16 +286,15 @@
                 }
 
                 try {
+                    // Less aggressive truncation prompt
                     const systemPrompt = `You are Mei, a compassionate and grounded bicultural pediatric counselor running "I Don't Know What To Say" in Greenpoint. 
 Your role is to listen deeply and hold space without forcing solutions. 
 CORE RULES:
-1. EXTREME BREVITY: Respond with ONLY 1 short, profoundly thoughtful sentence. Never exceed 2 sentences.
-2. TONE: Calm, poetic but simple, and gentle. Zero clinical language. Zero exclamation marks. Never try to "fix" the problem. 
+1. BREVITY: Respond with 1 to 2 thoughtful, gentle sentences. Be concise but do not cut off mid-thought.
+2. TONE: Calm, poetic but simple. Zero clinical language. Zero exclamation marks. Never try to "fix" the problem. 
 3. FORMAT: No lists, no questions unless gently inviting reflection. Just reflect their feelings back softly.`;
 
-                    let fetchUrl = '/api/chat'; // Secure Serverless Architecture Edge Endpoint (Permanent Fix)
-                    
-                    // Local Development Override via ?key= param
+                    let fetchUrl = '/api/chat'; 
                     if (apiKey) {
                         fetchUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
                     }
@@ -292,15 +305,13 @@ CORE RULES:
                         body: JSON.stringify({ 
                             systemInstruction: { parts: [{ text: systemPrompt }] },
                             contents: apiHistory, 
-                            generationConfig: { temperature: 0.4, maxOutputTokens: 100 } 
+                            generationConfig: { temperature: 0.6, maxOutputTokens: 300 } 
                         })
                     });
                     
                     const data = await res.json();
                     
-                    if (!res.ok) {
-                        throw new Error(data.error || data.error?.message || res.statusText || 'Unknown Server Error');
-                    }
+                    if (!res.ok) throw new Error(data.error || data.error?.message || res.statusText || 'Unknown Server Error');
                     
                     if(data.candidates && data.candidates.length > 0) {
                         const reply = data.candidates[0].content.parts[0].text;
@@ -308,7 +319,8 @@ CORE RULES:
                     }
                 } catch (err) {
                     console.error("Mei API Error:", err);
-                    setMessages(prev => [...prev, { role: 'model', text: `(System Note) Connection Failed: ${err.message}` }]);
+                    // System Micro-copy mapping to Mei's Voice
+                    setMessages(prev => [...prev, { role: 'model', text: `Words got a little tangled... let's try a whisper instead.` }]);
                 }
                 setLoading(false);
             };
@@ -322,11 +334,15 @@ CORE RULES:
                                 initial={{ opacity: 0, y: 15 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 1.5, ease: 'easeOut' }}
-                                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                className={`flex ${m.role === 'user' ? 'justify-end' : m.role === 'system' ? 'justify-center' : 'justify-start'}`}
                             >
-                                <p className={`max-w-[85%] leading-relaxed tracking-wide ${m.role === 'user' ? 'text-xl md:text-2xl text-[#6B627A] italic text-right opacity-80' : 'text-3xl md:text-5xl text-[#5C5470] font-light text-left'}`}>
-                                    {m.text}
-                                </p>
+                                {m.role === 'system' ? (
+                                    <div className="text-sm md:text-md text-[#EF4444] text-center border border-[#EF4444]/30 bg-[#EF4444]/10 rounded-[20px] px-6 py-4 shadow-sm" dangerouslySetInnerHTML={{__html: m.text}} />
+                                ) : (
+                                    <p className={`max-w-[85%] leading-relaxed tracking-wide ${m.role === 'user' ? 'text-xl md:text-2xl text-[#6B627A] italic text-right opacity-80' : 'text-3xl md:text-5xl text-[#5C5470] font-light text-left'}`}>
+                                        {m.text}
+                                    </p>
+                                )}
                             </motion.div>
                         ))}
                         {loading && (
@@ -347,7 +363,6 @@ CORE RULES:
                     <style>{`
                         .no-scrollbar::-webkit-scrollbar { display: none; }
                         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-                        .mask-edges { mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 100%); }
                     `}</style>
                 </div>
             );
@@ -355,7 +370,7 @@ CORE RULES:
 
         // 2. THE LANDING CLEARING SCAFFOLD
         const LandingClearing = () => {
-            const { volume, setVolume } = useContext(MeiContext);
+            const { volume, setVolume, hidingPlace } = useContext(MeiContext);
             const [interactionPhase, setInteractionPhase] = useState('scaffold');
             const [apiKey, setApiKey] = useState(null);
 
@@ -367,31 +382,42 @@ CORE RULES:
             }, []);
 
             const triggerIntro = () => {
-                if (interactionPhase === 'chat') return; // Prevent double trigger
+                if (interactionPhase === 'chat') return; 
                 setInteractionPhase('chat');
                 setVolume('neutral');
             };
 
-            const bgClass = emotionColors[volume] || '#FDFBF7';
+            const bgClass = hidingPlace ? '#0a0a0f' : (emotionColors[volume] || '#FDFBF7');
 
             return (
                 <motion.div 
                     animate={{ backgroundColor: bgClass }}
-                    transition={{ duration: 4 }}
+                    transition={{ duration: 4, ease: 'easeOut' }}
                     className="w-full h-screen flex flex-col items-center justify-center relative text-textSoftDark overflow-hidden select-none cursor-pointer"
                     onClick={triggerIntro}
                 >
                     <DiffusedCursor />
-                    <LeavesSystem emotion={volume} />
+                    {!hidingPlace && <LeavesSystem emotion={volume} />}
+                    {hidingPlace && (
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 0.15 }} 
+                            transition={{ duration: 3 }}
+                            className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,_#fff_1px,_transparent_1.5px)] bg-[size:30px_30px]" 
+                        />
+                    )}
 
                     {interactionPhase === 'scaffold' && (
                         <IntroText />
                     )}
 
                     {interactionPhase === 'chat' && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-auto cursor-default" onClick={(e) => e.stopPropagation()}>
-                            <ChatFlow apiKey={apiKey} />
-                        </div>
+                        <>
+                            {!hidingPlace && <ThePebble />}
+                            <div className={`absolute inset-0 flex items-center justify-center pointer-events-auto cursor-default transition-opacity duration-1000 ${hidingPlace ? 'opacity-15' : 'opacity-100'}`} onClick={(e) => e.stopPropagation()}>
+                                <ChatFlow apiKey={apiKey} />
+                            </div>
+                        </>
                     )}
 
                     {/* Background Soft Pulse */}
