@@ -5,42 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Clearing | Mei</title>
 
-    <!-- Tailwind Configuration for The Five Volumes -->
+    <!-- Tailwind Configuration: The Industrial-Organic Aesthetic -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        volumeWhisper: '#E6E6FA',
-                        volumeTalk: '#E5E7EB',
-                        volumeShout: '#FF7F50',
-                        volumeLaugh: '#FDE047',
-                        volumeCry: '#4682B4',
-                        clearingBg: '#FDFBF7', /* Warm, safe, creamy off-white */
-                        textSoftDark: '#5C5470'
+                        softMoss: '#8BA989',
+                        softMist: '#E0E7FF',
+                        softWatercolor: '#FDFBF7',
+                        hardSlate: '#111827',
+                        hardIron: '#1F2937',
+                        hardCharcoal: '#374151',
+                        forgeEmber: '#FF7F50',
+                        steelBlue: '#4682B4'
                     },
-                    animation: {
-                        'breath': 'pulse-glow 10s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    boxShadow: {
+                        'glow-soft': '0 0 40px rgba(224, 231, 255, 0.4)',
+                        'glow-hard': '0 0 60px rgba(255, 127, 80, 0.8)'
                     }
                 }
             }
         }
     </script>
 
-    <!-- React, DOM, Babel, and Framer Motion CDN Architecture -->
+    <!-- React, DOM, Babel, Framer Motion & Matter.js CDNs -->
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 
     <style>
-        body { margin: 0; padding: 0; background-color: #FDFBF7; overflow: hidden; color: #5C5470; font-family: system-ui, -apple-system, sans-serif;}
-        
+        body { margin: 0; padding: 0; background-color: #FDFBF7; overflow: hidden; font-family: system-ui, -apple-system, sans-serif;}
         .text-soft { text-shadow: 0 0 15px rgba(92,84,112,0.1); }
+        .svg-noise { filter: url(#paperNoise); opacity: 0.15; position: fixed; inset: 0; pointer-events: none; z-index: 50; mix-blend-mode: multiply; }
     </style>
 </head>
 <body>
+    <svg style="display:none;">
+        <filter id="paperNoise">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
+            <feColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 0.2 0" />
+        </filter>
+    </svg>
+    <div className="svg-noise"></div>
     <div id="root"></div>
 
     <script type="text/babel">
@@ -54,9 +64,10 @@
             const [gravity, setGravity] = useState('neutral'); // light, neutral, heavy
             const [hidingPlace, setHidingPlace] = useState(false);
             const [isTyping, setIsTyping] = useState(false);
+            const [heavyWords, setHeavyWords] = useState('');
             
             return (
-                <MeiContext.Provider value={{ volume, setVolume, gravity, setGravity, hidingPlace, setHidingPlace, isTyping, setIsTyping }}>
+                <MeiContext.Provider value={{ volume, setVolume, gravity, setGravity, hidingPlace, setHidingPlace, isTyping, setIsTyping, heavyWords, setHeavyWords }}>
                     {children}
                 </MeiContext.Provider>
             );
@@ -213,6 +224,77 @@
             );
         };
 
+        // MATTER.JS: Heavy Gravity Word Physics Engine
+        const MatterGravityWords = ({ heavyMessages }) => {
+            const sceneRef = useRef(null);
+            const engineRef = useRef(null);
+
+            useEffect(() => {
+                if (!sceneRef.current) return;
+                const { Engine, Render, Runner, Bodies, Composite } = Matter;
+
+                const engine = Engine.create();
+                engine.world.gravity.y = 1.2; // High-Gravity physics
+                engineRef.current = engine;
+
+                const render = Render.create({
+                    element: sceneRef.current,
+                    engine: engine,
+                    options: {
+                        width: window.innerWidth,
+                        height: window.innerHeight,
+                        wireframes: false,
+                        background: 'transparent',
+                        pixelRatio: window.devicePixelRatio
+                    }
+                });
+
+                // Invisible solid walls/ground to contain the shattering words
+                const ground = Bodies.rectangle(window.innerWidth / 2, window.innerHeight + 50, window.innerWidth, 100, { isStatic: true });
+                const wallL = Bodies.rectangle(-50, window.innerHeight / 2, 100, window.innerHeight * 2, { isStatic: true });
+                const wallR = Bodies.rectangle(window.innerWidth + 50, window.innerHeight / 2, 100, window.innerHeight * 2, { isStatic: true });
+
+                Composite.add(engine.world, [ground, wallL, wallR]);
+
+                Render.run(render);
+                const runner = Runner.create();
+                Runner.run(runner, engine);
+
+                return () => {
+                    Render.stop(render);
+                    Runner.stop(runner);
+                    Engine.clear(engine);
+                    if (render.canvas) render.canvas.remove();
+                };
+            }, []);
+
+            useEffect(() => {
+                if (!engineRef.current || !heavyMessages) return;
+                const { Bodies, Composite } = Matter;
+                const words = heavyMessages.split(' ');
+                
+                words.forEach((w, i) => {
+                    setTimeout(() => {
+                        // Render industrial/hard blocks dropping
+                        const b = Bodies.rectangle(Math.random() * (window.innerWidth - 200) + 100, -50, w.length * 20 + 40, 60, {
+                            restitution: 0.2, // Low elastic bounce, heavy clunk
+                            density: 0.1,
+                            friction: 0.8,
+                            render: {
+                                fillStyle: '#1F2937', // hardIron
+                                strokeStyle: '#FF7F50', // forgeEmber
+                                lineWidth: 2,
+                                // Provide text to a custom renderer or let the generic blocks represent the "shaping of heavy words"
+                            }
+                        });
+                        Composite.add(engineRef.current.world, b);
+                    }, i * 150);
+                });
+            }, [heavyMessages]);
+
+            return <div ref={sceneRef} className="absolute inset-0 pointer-events-none z-10 mix-blend-multiply opacity-50" />;
+        };
+
         // ARTIFACT PROTOCOL: The Story Trees & Lantern Leaves
         const LanternLeaf = ({ artifact }) => {
             const [isResonating, setIsResonating] = useState(false);
@@ -337,8 +419,8 @@
         );
 
         // CHAT INTERFACE
-        const ChatFlow = ({ apiKey }) => {
-            const { setVolume, setGravity, setHidingPlace, setIsTyping } = useContext(MeiContext);
+        const ChatFlow = ({ apiKey, setInteractionPhase }) => {
+            const { setVolume, setGravity, setHidingPlace, setIsTyping, setHeavyWords } = useContext(MeiContext);
             const [input, setInput] = useState('');
             const [messages, setMessages] = useState([]);
             const [loading, setLoading] = useState(false);
@@ -368,8 +450,11 @@
                 const newVolume = analyzeSentiment(userText);
                 setVolume(newVolume);
                 
-                // Set Gravity
-                if (newVolume === 'angry' || newVolume === 'overwhelmed') setGravity('heavy');
+                // Set Gravity & Matter Physics Engine Hook
+                if (newVolume === 'angry' || newVolume === 'overwhelmed') {
+                    setGravity('heavy');
+                    setHeavyWords(userText); // Passes words to MatterGravityWords to spawn dropping cinderblocks
+                }
                 else if (newVolume === 'sad') setGravity('light');
                 else setGravity('neutral');
                 
@@ -383,20 +468,13 @@
                 if (hideTriggers.some(t => lText.includes(t))) setHidingPlace(true);
                 else if (lText.includes("light") || lText.includes("come back") || lText.includes("better")) setHidingPlace(false);
 
-                // Crisis Escalation Protocol
+                // Crisis Escalation Protocol -> Engages Guardian Protocol UI
                 const escalators = ["bridge", "jump", "stop the pain", "pain forever", "die", "hurt myself", "end my life", "kill myself"];
                 if (escalators.some(t => lText.includes(t))) {
                     setLoading(true);
                     setTimeout(() => {
                         setLoading(false);
-                        setMessages(prev => [...prev, { role: 'model', text: "Thank you for being so brave and telling me exactly how heavy things feel right now. Because you're hurting that much, we are going to press pause." }]);
-                        setTimeout(() => {
-                            setMessages(prev => [...prev, { role: 'system', text: "<b>SYSTEM OVERRIDE: CLINICAL ESCALATION ENGAGED</b><br>Silent PagerDuty alert dispatched to clinical supervisor.<br>988 Crisis Copilot module engaged." }]);
-                            setTimeout(() => {
-                                setMessages(prev => [...prev, { role: 'model', text: "You don't have to carry this alone. I'm connecting us to a specialist friend of mine who knows exactly how heavy this feels. They are hopping into our chat right now to help carry the load." }]);
-                                // Handoff...
-                            }, 2500);
-                        }, 1500);
+                        setInteractionPhase('guardian'); // Swaps the entire app state cleanly to Guardian UI
                     }, 1000);
                     return; 
                 }
@@ -578,14 +656,42 @@ CORE RULES:
                         <IntroText />
                     )}
 
+                    {interactionPhase === 'guardian' && (
+                        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#FDFBF7] pointer-events-auto px-8">
+                            <div className="max-w-2xl w-full flex flex-col items-center">
+                                <motion.div 
+                                    initial={{ scale: 0.8, opacity: 0 }} 
+                                    animate={{ scale: 1, opacity: 1 }} 
+                                    className="w-24 h-24 mb-6 rounded-full bg-[#EF4444] flex items-center justify-center text-white text-5xl font-bold shadow-[0_0_50px_rgba(239,68,68,0.5)]"
+                                >
+                                    !
+                                </motion.div>
+                                <h1 className="text-4xl font-bold text-[#1F2937] text-center mb-6 drop-shadow-sm">We are pressing pause.</h1>
+                                <p className="text-2xl text-[#374151] text-center mb-10 leading-relaxed max-w-xl font-light">
+                                    Thank you for being so brave and telling us exactly how heavy things feel right now. You don't have to carry this alone.
+                                </p>
+                                <div className="p-8 bg-white border border-[#E5E7EB] rounded-2xl w-full shadow-lg relative z-10 flex flex-col items-center">
+                                    <h2 className="text-xl font-bold text-[#EF4444] mb-3 uppercase tracking-widest">Clinical Escalation Engaged</h2>
+                                    <p className="text-lg text-[#4B5563] mb-8 text-center bg-[#F3F4F6] p-4 rounded-xl">
+                                        A human specialist is connecting to our line right now via the 988 Crisis Copilot module.
+                                    </p>
+                                    <button className="w-full max-w-md bg-[#111827] text-white font-bold text-xl py-5 rounded-xl shadow-lg hover:bg-[#374151] transition-all transform hover:scale-[1.02]">
+                                        Speak to Specialist Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {interactionPhase === 'chat' && (
                         <>
                             {!hidingPlace && <StoryTrees />}
                             {!hidingPlace && <ThePebble />}
+                            {gravity === 'heavy' && <MatterGravityWords heavyMessages={heavyWords} />}
                             
                             {/* Make absolute container pointer-events-none so StoryTrees behind it can receive clicks */}
                             <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-1000 ${hidingPlace ? 'opacity-15' : 'opacity-100'}`} onClick={(e) => e.stopPropagation()}>
-                                <ChatFlow apiKey={apiKey} />
+                                <ChatFlow apiKey={apiKey} setInteractionPhase={setInteractionPhase} />
                             </div>
                         </>
                     )}
