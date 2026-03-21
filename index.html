@@ -105,63 +105,53 @@
             'cry': { start: '#4682B4', end: '#312E81', bg: '#EEF2FF' }
         };
 
-        // 3. THE "PEBBLE" PROXY: A soft, pastel worry-stone
-        const PebbleProxy = ({ onClick, isChatPhase }) => {
+        // 3. THE "LEAF" PROXY: A gentle floating leaf replacing the amoeba
+        const LeafProxy = ({ onClick, isChatPhase }) => {
             const { volume } = useContext(MeiContext);
             const colors = volumeColors[volume] || volumeColors['talk'];
 
-            // Gentle pebble shapes instead of severe amoebas
-            const path1 = "M40,20 C60,15 80,25 85,50 C90,75 75,90 50,85 C25,80 15,70 15,45 C15,20 20,25 40,20 Z";
-            const path2 = "M45,22 C65,18 85,28 82,53 C79,78 70,88 45,82 C20,76 18,65 18,48 C18,31 25,26 45,22 Z";
-            const path3 = "M42,18 C62,12 82,22 88,48 C94,74 72,92 48,88 C24,84 12,68 12,42 C12,16 22,24 42,18 Z";
+            // Completely unmount during chat to ensure it never blocks text on small mobile screens
+            if (isChatPhase) return null;
 
             return (
                 <motion.div 
-                    drag 
-                    dragConstraints={{ left: -300, right: 300, top: -300, bottom: 300 }}
-                    dragElastic={0.2}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onClick}
                     className="relative cursor-pointer z-20 flex flex-col items-center group mb-8"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: isChatPhase ? 0.6 : 1 }}
+                    initial={{ opacity: 0, scale: 0.8, y: 30 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ duration: 3, ease: "easeOut" }}
                 >
                     {volume === 'shout' && (
-                        <motion.div animate={{ x: [-2, 2, -2] }} transition={{ repeat: Infinity, duration: 0.1 }} className="absolute inset-0" />
+                        <motion.div animate={{ x: [-3, 3, -3] }} transition={{ repeat: Infinity, duration: 0.1 }} className="absolute inset-0 z-0" />
                     )}
-                    <motion.div 
-                        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.05, 1] }}
-                        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                        className={`absolute inset-0 rounded-full blur-2xl ${isChatPhase ? 'opacity-40' : 'opacity-100'}`}
-                        style={{ backgroundColor: colors.start }}
-                    />
-                    
-                    <svg viewBox="0 0 100 100" className="w-40 h-40 drop-shadow-lg md:w-56 md:h-56">
-                        <defs>
-                            <linearGradient id="pebbleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <motion.stop offset="0%" animate={{ stopColor: colors.start }} transition={{ duration: 2 }} />
-                                <motion.stop offset="100%" animate={{ stopColor: colors.end }} transition={{ duration: 2 }} />
-                            </linearGradient>
-                            <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                <feGaussianBlur stdDeviation="3" result="blur" />
-                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                            </filter>
-                        </defs>
-                        <motion.path
-                            animate={{ d: [path1, path2, path3, path1] }}
+                    {/* Breath-sync shadow matching 6 BPM (10s total cycle) taking on the emotional volume color */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <motion.div 
+                            animate={{ opacity: [0.3, 0.7, 0.3], scale: [1, 1.3, 1] }}
                             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-                            fill="url(#pebbleGrad)"
-                            stroke="#FFFFFF"
-                            strokeWidth="1.5"
-                            strokeOpacity="0.8"
-                            filter="url(#softGlow)"
+                            className="rounded-full blur-3xl z-0 w-32 h-32 md:w-48 md:h-48"
+                            style={{ backgroundColor: colors.start }}
                         />
-                        <text x="50" y="52" fontSize="9" fill="#5C5470" textAnchor="middle" opacity="0.6" className="font-semibold tracking-[0.2em] pointer-events-none">
+                    </div>
+                    
+                    <div className="relative z-10 flex flex-col items-center justify-center">
+                        {/* The Floating Leaf */}
+                        <motion.div 
+                            animate={{ y: [0, -15, 0], rotate: [-5, 5, -5] }}
+                            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                            className="text-7xl md:text-9xl drop-shadow-xl"
+                            style={{ filter: `drop-shadow(0px 10px 20px ${colors.start}50)` }}
+                        >
+                            🍃
+                        </motion.div>
+                        
+                        {/* The Anchor Text */}
+                        <div className="mt-8 text-xs md:text-sm font-semibold tracking-[0.4em] text-textSoftDark uppercase bg-white/60 backdrop-blur-xl px-8 py-3 rounded-full shadow-sm border border-white/20 hover:bg-white/80 transition-all">
                             i don't know
-                        </text>
-                    </svg>
+                        </div>
+                    </div>
                 </motion.div>
             );
         };
@@ -322,7 +312,7 @@
                                 THE CLEARING
                             </motion.h1>
                             
-                            <PebbleProxy onClick={triggerIntro} isChatPhase={false} />
+                            <LeafProxy onClick={triggerIntro} isChatPhase={false} />
                             
                             <motion.p
                                 initial={{ opacity: 0 }}
@@ -338,7 +328,7 @@
                     {interactionPhase === 'chat' && (
                         <>
                             <div className="absolute top-4 right-4 md:top-8 md:right-8 opacity-60 z-20">
-                                <PebbleProxy onClick={() => {}} isChatPhase={true} />
+                                <LeafProxy onClick={() => {}} isChatPhase={true} />
                             </div>
                             <ChatFlow apiKey={apiKey} />
                         </>
