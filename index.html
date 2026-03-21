@@ -119,20 +119,21 @@
                 opacity: 0.2 + Math.random() * 0.6       // Organic leaf transparency
             }), []);
 
-            let animate = {};
+            let initial = { rotate: leaf.rotStart, opacity: 0 };
+            let animate = { opacity: leaf.opacity };
             let transition = { repeat: Infinity, ease: "linear" };
             let style = { 
                 left: `${leaf.startX}vw`, 
                 top: `${leaf.startY}vh`, 
                 width: leaf.size, 
                 height: leaf.size,
-                filter: `blur(${leaf.blur}px)`,
-                opacity: leaf.opacity
+                filter: `blur(${leaf.blur}px)`
             };
 
             if (emotion === 'neutral') {
                 // Bobbing gently organically, each leaf sways differently
                 animate = { 
+                    ...animate,
                     y: [0, leaf.sway * 1.5, 0], 
                     x: [0, leaf.sway, 0], 
                     rotate: [leaf.rotStart, leaf.rotStart + (leaf.sway * 2)] 
@@ -142,8 +143,9 @@
                 // Fall gently from top through independent paths
                 style.top = '-15vh';
                 animate = { 
+                    ...animate,
                     y: ['-10vh', '115vh'], 
-                    x: ['0vw', `${leaf.sway}vw`, `${-(leaf.sway)}vw`], 
+                    x: ['0vw', `${leaf.sway}vw`, `${-leaf.sway}vw`], 
                     rotate: [leaf.rotStart, leaf.rotStart + leaf.rotEnd / 4] 
                 };
                 transition = { duration: 15 * leaf.speed + 10, repeat: Infinity, ease: "linear", delay: leaf.delay };
@@ -151,6 +153,7 @@
                 // Buffeted by strong wind (horizontal blast, independent speeds and massive spins)
                 style.left = '-15vw';
                 animate = { 
+                    ...animate,
                     x: ['-20vw', '120vw'], 
                     y: [0, leaf.sway * 4], 
                     rotate: [leaf.rotStart, leaf.rotStart + leaf.rotEnd] 
@@ -160,6 +163,7 @@
                 // Lots of leaves swirling quickly in chaotic vortex paths
                 style.top = '-20vh';
                 animate = { 
+                    ...animate,
                     y: ['-20vh', '120vh'], 
                     x: [`${leaf.sway}vw`, `${-leaf.sway * 2}vw`], 
                     rotate: [leaf.rotStart, leaf.rotStart + leaf.rotEnd] 
@@ -171,6 +175,7 @@
                 <motion.div
                     className="absolute drop-shadow-sm pointer-events-none"
                     style={style}
+                    initial={initial}
                     animate={animate}
                     transition={transition}
                 >
