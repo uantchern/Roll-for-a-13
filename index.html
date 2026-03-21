@@ -278,22 +278,30 @@
         let FETCH_URL = null;
 
         async function initializeGeminiKey() {
-            try {
-                // Attempt to natively parse the hidden .env file running on your local server.
-                const envResponse = await fetch('.env');
-                if (envResponse.ok) {
-                    const text = await envResponse.text();
-                    const match = text.match(/MEI_GEMINI_KEY=(.*)/);
-                    if (match && match[1]) {
-                        GEMINI_API_KEY = match[1].trim();
-                        console.log("Successfully loaded Gemini Key from local .env file");
-                    }
-                }
-            } catch (error) {
-                console.log("Could not load local .env file (Running on public host or file:// protocol). Falling back to Local Cache.");
+            // 1. Silent Mobile Magic Link Injector
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlKey = urlParams.get('key') || urlParams.get('gemini');
+            if (urlKey) {
+                localStorage.setItem('MEI_GEMINI_KEY', urlKey);
+                GEMINI_API_KEY = urlKey;
+                
+                // Erase the key from the browser URL bar so it doesn't look ugly
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
 
-            // Fallback: If .env completely fails or is not uploaded, check browser's memory.
+            // 2. Attempt to parse local .env file
+            if (!GEMINI_API_KEY) {
+                try {
+                    const envResponse = await fetch('.env');
+                    if (envResponse.ok) {
+                        const text = await envResponse.text();
+                        const match = text.match(/MEI_GEMINI_KEY=(.*)/);
+                        if (match && match[1]) { GEMINI_API_KEY = match[1].trim(); }
+                    }
+                } catch (error) {}
+            }
+
+            // 3. Fallback to Local Cache / Prompt
             if (!GEMINI_API_KEY) {
                 GEMINI_API_KEY = localStorage.getItem('MEI_GEMINI_KEY');
                 if (!GEMINI_API_KEY) {
@@ -302,7 +310,7 @@
                 }
             }
 
-            // Bind the active URL (either directly to LLM for testing, or to Cloudflare Proxy if set)
+            // Bind the active URL
             FETCH_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
         }
         
