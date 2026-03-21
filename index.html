@@ -281,17 +281,32 @@
 
         // Load voices
         synth.onvoiceschanged = () => {
-            meiVoices = synth.getVoices().filter(v => v.lang.includes("en-US") && v.name.includes("Female"));
-            if(meiVoices.length === 0) meiVoices = synth.getVoices().filter(v => v.lang.includes("en-US"));
+            const allVoices = synth.getVoices();
+            // Target premium/natural American female voices (Mac/Windows favorites)
+            const preferredNames = ["Samantha", "Aria", "Google US English", "Zira", "Jenny", "Victoria"];
+            
+            meiVoices = allVoices.filter(v => v.lang.includes("en-US") && preferredNames.some(name => v.name.includes(name)));
+            
+            // Fallback to any generic US female voice
+            if(meiVoices.length === 0) {
+                meiVoices = allVoices.filter(v => v.lang.includes("en-US") && (v.name.includes("Female") || v.name.includes("Woman")));
+            }
+            // Final fallback to any US voice
+            if(meiVoices.length === 0) {
+                meiVoices = allVoices.filter(v => v.lang.includes("en-US"));
+            }
         };
 
         function speak(text) {
             // strip simple HTML and emojis to make it sound natural
             const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
             const utterThis = new SpeechSynthesisUtterance(cleanText);
-            utterThis.rate = 1.05;
-            utterThis.pitch = 1.2;
-            if(meiVoices.length > 0) utterThis.voice = meiVoices[1] || meiVoices[0]; // try to get a pleasant female voice
+            
+            // "New Yorker" cadence: fast-paced, youthful pitch
+            utterThis.rate = 1.15; 
+            utterThis.pitch = 1.1; 
+            
+            if(meiVoices.length > 0) utterThis.voice = meiVoices[0]; // grab top matched voice
             synth.speak(utterThis);
         }
 
