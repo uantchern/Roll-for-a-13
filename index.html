@@ -399,15 +399,39 @@
             setTimeout(() => {
                 document.getElementById('startOverlay').style.display = 'none';
             }, 500);
+        }
 
-            // Initialize Chat
+        const meiOpeners = [
+            "Hey there! Mei here. I just grabbed an iced tea from Manhattan Avenue and settled into the office. 🍵 I'm completely devoted to my passion today: pediatric counseling and therapy. Let's begin. 🧩",
+            "Hi! It's Mei. I just finished a quick morning run around McCarren Park and am now fully focused on my favorite thing: pediatric therapy. 👟 Ready to get started? 🌻",
+            "Welcome! Mei here. I was just organizing some of the new art therapy supplies in my Greenpoint office. 🎨 I love dedicating 100% of my energy to kids counseling. Let's start. ✨",
+            "Hello! Mei checking in. The view of the East River from my office is wonderfully calming today. 🌊 I'm ready to dive into my life's work: pediatric counseling and therapy. 🧘🏻‍♀️",
+            "Hey there! Mei here. I just got back to the office from a quick walk by the water at Newtown Barge Park! 🌬️ I am deeply passionate about my one true focus today: pediatric counseling and therapy. Let's get started. 🧩",
+            "Hi there, I'm Mei! Just wrapped up some morning meditation here in Greenpoint and feeling centered. 🪴 Dedicating my heart to pediatric counseling is what I do best. Let's begin! 🌟",
+            "Welcome! Mei speaking. I've got my comfortable counseling space all set up for the day here in Queens. 🛋️ There's nothing I'm more passionate about than pediatric therapy. Let's get going. 🚀",
+            "Hello! It's Mei. I just picked up my favorite Taiwanese bakery snack down the street and am ready to focus purely on kids counseling! 🥮 Let's get started whenever you're ready. 🧭",
+            "Hey! Mei here. Watching the ferry pass by my window right now always grounds me. ⛴️ I'm 100% focused today on my core passion—pediatric counseling and therapy. Let's do this! 🌈",
+            "Hi! Mei here. I just arranged some fresh flowers in my Greenpoint therapy room. 💐 I pour all my energy into pediatric counseling, and I'm ready for us to start. 🦋"
+        ];
+        
+        const meiFollowUp = "How is your body feeling right now? If you had to pick an emoji for your energy today, which one would it be?";
+
+        // Initialize Randomized Chat
+        const randomOpener = meiOpeners[Math.floor(Math.random() * meiOpeners.length)];
+
+        // Pre-load Mei's opening dialogue into the Gemini Memory so the AI remembers what she just said
+        chatHistory.push({ "role": "model", "parts": [{ "text": randomOpener }] });
+        chatHistory.push({ "role": "model", "parts": [{ "text": meiFollowUp }] });
+
+        window.onload = () => {
+            // Display Chat Visuals
             setTimeout(() => {
-                addMessage("Hey there! Mei here. I just got back to the office from a quick walk by the water at Newtown Barge Park! 🌬️ I am deeply passionate about my one true focus today: pediatric counseling and therapy. Let's get started. 🧩", "mei");
+                addMessage(randomOpener, "mei");
                 setTimeout(() => {
-                    addMessage("How is your body feeling right now? If you had to pick an emoji for your energy today, which one would it be?", "mei");
+                    addMessage(meiFollowUp, "mei");
                 }, 4000);
             }, 500);
-        }
+        };
 
         async function sendMessage() {
             const text = input.value.trim();
