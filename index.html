@@ -333,7 +333,16 @@
         function addMessage(text, sender) {
             const div = document.createElement('div');
             div.className = `message msg-${sender}`;
-            div.innerHTML = text;
+            
+            // XSS Prevention: Sanitize input from User or LLM to prevent DOM injection attacks
+            // The system role still needs raw HTML for bolding the escalation warnings.
+            if (sender === 'user' || sender === 'mei') {
+                const sanitizedText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                div.innerHTML = sanitizedText;
+            } else {
+                div.innerHTML = text; // Allow HTML exclusively for hardcoded system warning text
+            }
+            
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
 

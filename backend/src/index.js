@@ -18,7 +18,20 @@ export default {
       try {
         const body = await request.json();
   
-        // 2. SERVER-SIDE SYSTEM PROMPT (Prevents Client-Side Jailbreaking)
+        // 2a. PAYLOAD VALIDATION (Prevents Denial of Wallet / Token Exhaustion Attacks)
+        // Attackers can bypass CORS using cURL to send massive 2-million-token payloads to bankrupt your API key.
+        if (!body.contents || !Array.isArray(body.contents) || body.contents.length > 50) {
+            return new Response("Invalid chat history payload or excessively long context window.", { status: 400, headers: corsHeaders });
+        }
+        
+        // Enforce max 1000 characters per message part to prevent massive contextual flooding
+        for (let msg of body.contents) {
+            if (msg.parts && msg.parts[0] && msg.parts[0].text.length > 1000) {
+                return new Response("Message exceeds maximum safe character length.", { status: 413, headers: corsHeaders });
+            }
+        }
+  
+        // 2b. SERVER-SIDE SYSTEM PROMPT (Prevents Client-Side Jailbreaking)
         // Hardcoding the instructions here means users cannot modify Chrome DevTools to erase Mei's safety boundaries.
         const systemInstruction = {
             "role": "user",
