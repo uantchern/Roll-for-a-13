@@ -19,7 +19,8 @@ export default async function handler(req) {
             });
         }
 
-        const fetchUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+        // UPGRADE: Force target gemini-1.5-flash for modern Google Cloud projects
+        const fetchUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         
         const response = await fetch(fetchUrl, {
             method: 'POST',
@@ -30,7 +31,7 @@ export default async function handler(req) {
         const data = await response.json();
 
         if (!response.ok) {
-            return new Response(JSON.stringify({ error: data.error?.message || response.statusText }), {
+            return new Response(JSON.stringify({ error: `[PROXY ERR]: ` + (data.error?.message || response.statusText) }), {
                 status: response.status, headers: { 'Content-Type': 'application/json' }
             });
         }
