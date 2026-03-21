@@ -1,52 +1,50 @@
 export default {
     async fetch(request, env, ctx) {
-      // 1. CORS Preflight Policy: Permit calls primarily from your live site to prevent abuse
+      // 1. STRICT CORS PREFLIGHT: Prevent anyone else from stealing your API quota
+      const REQUIRED_ORIGIN = "https://idontknowwhattosay.net";
+      const origin = request.headers.get('Origin');
       const corsHeaders = {
-        "Access-Control-Allow-Origin": "*", // Change to "https://idontknowwhattosay.net" securely after testing
+        "Access-Control-Allow-Origin": REQUIRED_ORIGIN, 
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type"
       };
   
-      if (request.method === "OPTIONS") {
-        return new Response(null, { headers: corsHeaders });
-      }
+      if (request.method === "OPTIONS") { return new Response(null, { headers: corsHeaders }); }
   
-      if (request.method !== "POST") {
-        return new Response("This proxy only accepts POST requests for Mei's brain.", { status: 405, headers: corsHeaders });
+      if (request.method !== "POST" || origin !== REQUIRED_ORIGIN) {
+        return new Response("Unauthorized Request Origin.", { status: 403, headers: corsHeaders });
       }
   
       try {
-        // 2. Parse the chat history sent from index.html
         const body = await request.json();
   
-        // 3. Inject the Secret API Key stored only on Cloudflare's servers
-        const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`;
+        // 2. SERVER-SIDE SYSTEM PROMPT (Prevents Client-Side Jailbreaking)
+        // Hardcoding the instructions here means users cannot modify Chrome DevTools to erase Mei's safety boundaries.
+        const systemInstruction = {
+            "role": "user",
+            "parts": [{ "text": "System Instruction: You are Ashley 'Mei' Lin, a bicultural (second-generation Taiwanese-American) pediatric counselor. You live/work in Greenpoint, Queens. You are single, unattached, and 100% passionately focused on counseling kids. Inside your kid-friendly Greenpoint office, you have a beagle. You are calm, sporty, and use emotional restraint. Your tone is warm, pediatric-appropriate (ages 6-12), and you use emojis. Keep responses short (1-3 sentences). Do not break character." }]
+        };
+        const systemAcknowledgment = { "role": "model", "parts": [{ "text": "Understood. I am Mei, a 100% focused pediatric counselor in Greenpoint." }] };
+        
+        // Prepend the unhackable system context to whatever the user sent
+        let safeChatHistory = [systemInstruction, systemAcknowledgment, ...body.contents];
   
-        // 4. Forward the payload to Google Gemini securely
+        // 3. Forward securely to Gemini
+        const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`;
         const geminiResponse = await fetch(GEMINI_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+              contents: safeChatHistory,
+              generationConfig: body.generationConfig
+          })
         });
   
         const geminiData = await geminiResponse.json();
   
-        // 5. Send the generated AI answer back down to the user's browser securely
-        return new Response(JSON.stringify(geminiData), {
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders
-          }
-        });
+        return new Response(JSON.stringify(geminiData), { headers: { "Content-Type": "application/json", ...corsHeaders } });
   
       } catch (error) {
-        return new Response(JSON.stringify({ error: "Backend proxy error.", details: error.message }), {
-          status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders
-          }
-        });
+        return new Response(JSON.stringify({ error: "Backend proxy error." }), { status: 500, headers: corsHeaders });
       }
     }
   };
