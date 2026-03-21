@@ -326,29 +326,34 @@ CORE RULES:
             };
 
             return (
-                <div className="w-full max-w-3xl h-full flex flex-col z-10 px-8 drop-shadow-sm pt-[15vh] pb-8">
-                    <div className="flex-1 overflow-y-auto w-full no-scrollbar px-2 space-y-12 flex flex-col">
-                        {messages.map((m, i) => (
-                            <motion.div 
-                                key={i}
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 1.5, ease: 'easeOut' }}
-                                className={`flex ${m.role === 'user' ? 'justify-end' : m.role === 'system' ? 'justify-center' : 'justify-start'}`}
-                            >
-                                {m.role === 'system' ? (
-                                    <div className="text-sm md:text-md text-[#EF4444] text-center border border-[#EF4444]/30 bg-[#EF4444]/10 rounded-[20px] px-6 py-4 shadow-sm" dangerouslySetInnerHTML={{__html: m.text}} />
-                                ) : (
-                                    <p className={`max-w-[85%] leading-relaxed tracking-wide ${m.role === 'user' ? 'text-xl md:text-2xl text-[#6B627A] italic text-right opacity-80' : 'text-3xl md:text-5xl text-[#5C5470] font-light text-left'}`}>
-                                        {m.text}
-                                    </p>
-                                )}
-                            </motion.div>
-                        ))}
-                        {loading && (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[#8B7E9A] text-xl font-light italic text-right opacity-70">mei is listening...</motion.div>
-                        )}
-                        <div ref={chatEndRef} className="h-32 shrink-0" />
+                <div className="w-full max-w-3xl h-full flex flex-col z-10 px-8 drop-shadow-sm pb-8">
+                    <div className="flex-1 overflow-y-auto w-full no-scrollbar px-2 flex flex-col">
+                        {/* Pushes initial messages to the bottom and protects the top from clipping */}
+                        <div className="flex-1 shrink-0 min-h-[15vh]"></div>
+
+                        <div className="flex flex-col space-y-12 justify-end pb-8">
+                            {messages.map((m, i) => (
+                                <motion.div 
+                                    key={i}
+                                    initial={{ opacity: 0, y: 15 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 1.5, ease: 'easeOut' }}
+                                    className={`flex ${m.role === 'user' ? 'justify-end' : m.role === 'system' ? 'justify-center' : 'justify-start'}`}
+                                >
+                                    {m.role === 'system' ? (
+                                        <div className="text-sm md:text-md text-[#EF4444] text-center border border-[#EF4444]/30 bg-[#EF4444]/10 rounded-[20px] px-6 py-4 shadow-sm" dangerouslySetInnerHTML={{__html: m.text}} />
+                                    ) : (
+                                        <p className={`max-w-[85%] leading-relaxed tracking-wide ${m.role === 'user' ? 'text-xl md:text-2xl text-[#6B627A] italic text-right opacity-80' : 'text-3xl md:text-5xl text-[#5C5470] font-light text-left overflow-visible py-2'}`}>
+                                            {m.text}
+                                        </p>
+                                    )}
+                                </motion.div>
+                            ))}
+                            {loading && (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[#8B7E9A] text-xl font-light italic text-right opacity-70">mei is listening...</motion.div>
+                            )}
+                            <div ref={chatEndRef} className="h-4 shrink-0" />
+                        </div>
                     </div>
                     
                     <form onSubmit={handleSend} className="relative mt-8 mb-4">
