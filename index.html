@@ -342,12 +342,12 @@
         synth.onvoiceschanged = () => {
             const allVoices = synth.getVoices();
             
-            // 1. First priority: Cloud-based Neural voices which sound 100% natural (e.g., Microsoft Aria Natural, Google US English)
+            // 1. First priority: Cloud-based Neural voices which sound natural
             let premiumVoices = allVoices.filter(v => v.lang.includes("en-US") && (v.name.includes("Natural") || v.name.includes("Online")));
             
-            // 2. Second priority: High quality local female voices
+            // 2. Target younger-sounding premium voices like Jenny (Microsoft) or Samantha (Apple)
             if (premiumVoices.length === 0) {
-                premiumVoices = allVoices.filter(v => v.lang.includes("en-US") && ["Samantha", "Aria", "Google", "Zira", "Jenny"].some(name => v.name.includes(name)));
+                premiumVoices = allVoices.filter(v => v.lang.includes("en-US") && ["Jenny", "Aria", "Samantha", "Google", "Zira"].some(name => v.name.includes(name)));
             }
             
             // 3. Fallback
@@ -402,7 +402,7 @@
 
             // Initialize Chat
             setTimeout(() => {
-                addMessage("Hey there! Mei here. I just got back to the office from a quick walk by the water at Newtown Barge Park! 🌬️ I'm 100% focused on my one true passion today: pediatric counseling. Let's get started. 🧩", "mei");
+                addMessage("Hey there! Mei here. I just got back to the office from a quick walk by the water at Newtown Barge Park! 🌬️ I am deeply passionate about my one true focus today: pediatric counseling and therapy. Let's get started. 🧩", "mei");
                 setTimeout(() => {
                     addMessage("How is your body feeling right now? If you had to pick an emoji for your energy today, which one would it be?", "mei");
                 }, 4000);
