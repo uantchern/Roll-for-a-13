@@ -302,9 +302,9 @@
             const cleanText = text.replace(/<[^>]*>?/gm, '').replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '');
             const utterThis = new SpeechSynthesisUtterance(cleanText);
             
-            // "New Yorker" cadence: fast-paced, youthful pitch
-            utterThis.rate = 1.15; 
-            utterThis.pitch = 1.1; 
+            // "Huskier, Calmer, Slower" cadence
+            utterThis.rate = 0.9;  // Slower pace for calm therapy
+            utterThis.pitch = 0.8; // Lower pitch for a huskier, more resonant tone
             
             if(meiVoices.length > 0) utterThis.voice = meiVoices[0]; // grab top matched voice
             synth.speak(utterThis);
