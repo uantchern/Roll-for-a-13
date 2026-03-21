@@ -62,6 +62,38 @@
             );
         };
 
+        // ARTIFACT PROTOCOL: Global Forest Database Simulation (Supabase/Firebase Architecture)
+        const GlobalForest = {
+            getArtifacts: async () => {
+                const stored = localStorage.getItem('MEI_GLOBAL_FOREST');
+                if (stored) return JSON.parse(stored);
+                // Seed anonymous coordinates and metadata
+                const seeds = [
+                    { id: 1, filteredText: "the heavy feeling is smaller now", volume: "overwhelmed", coords: { x: 15, y: 25 } },
+                    { id: 2, filteredText: "nobody listened but the trees did", volume: "sad", coords: { x: 80, y: 40 } },
+                    { id: 3, filteredText: "shattering the stone into embers", volume: "angry", coords: { x: 70, y: 80 } },
+                    { id: 4, filteredText: "i'm just resting here for a moment", volume: "neutral", coords: { x: 85, y: 15 } }
+                ];
+                localStorage.setItem('MEI_GLOBAL_FOREST', JSON.stringify(seeds));
+                return seeds;
+            },
+            plantArtifact: async (text, volume) => {
+                // MODERATION: Safety Filter Engine (Strips PII, extracts symbolic emotional data)
+                const safePass1 = text.replace(/\b(my name is \w+|i live in \w+)\b/gi, "[symbolic silence]");
+                const safePass2 = safePass1.replace(/\b\d{3}[-\s]?\d{4}\b/g, "[filtered]"); 
+                
+                const stored = JSON.parse(localStorage.getItem('MEI_GLOBAL_FOREST') || "[]");
+                const newArtifact = {
+                    id: Date.now(),
+                    filteredText: safePass2,
+                    volume: volume,
+                    coords: { x: 10 + Math.random() * 80, y: 10 + Math.random() * 80 }
+                };
+                localStorage.setItem('MEI_GLOBAL_FOREST', JSON.stringify([...stored, newArtifact]));
+                return newArtifact;
+            }
+        };
+
         // WAYFINDING NAVIGATION: Illumination Cursor
         const DiffusedCursor = () => {
             const { hidingPlace, gravity } = useContext(MeiContext);
@@ -181,6 +213,64 @@
             );
         };
 
+        // ARTIFACT PROTOCOL: The Story Trees & Lantern Leaves
+        const LanternLeaf = ({ artifact }) => {
+            const [isResonating, setIsResonating] = useState(false);
+            
+            const handleTouch = (e) => {
+                e.stopPropagation(); 
+                if (isResonating) return;
+                setIsResonating(true);
+                // Synchronized breath-pulse between user and artifact (10 seconds = 6 BPM resonance)
+                setTimeout(() => setIsResonating(false), 10000); 
+            };
+
+            const emberColors = {
+                'angry': '#FCA5A5', 'sad': '#A78BFA', 'overwhelmed': '#FCD34D', 'neutral': '#E5E7EB'
+            };
+            const glowColor = emberColors[artifact.volume] || '#E5E7EB';
+
+            return (
+                <div 
+                    className="absolute z-20 pointer-events-auto flex flex-col items-center justify-center cursor-pointer" 
+                    style={{ left: `${artifact.coords.x}vw`, top: `${artifact.coords.y}vh` }}
+                    onClick={handleTouch}
+                >
+                    <motion.div 
+                        animate={isResonating ? { scale: [1, 1.5, 1], opacity: [0.9, 1, 0.9], filter: ["blur(4px)", "blur(12px)", "blur(4px)"] } : { y: [0, -5, 0], opacity: 0.6, scale: 1 }}
+                        transition={{ duration: isResonating ? 10 : 8, repeat: Infinity, ease: "easeInOut" }}
+                        className="w-8 h-8 rounded-full mix-blend-screen"
+                        style={{ backgroundColor: glowColor, boxShadow: `0 0 20px ${glowColor}` }}
+                    />
+                    {isResonating && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10 }} 
+                            animate={{ opacity: 1, y: 0 }} 
+                            exit={{ opacity: 0, y: 10 }}
+                            className="absolute mt-16 w-56 text-center text-sm md:text-md text-[#E5E7EB] font-light italic tracking-wider pointer-events-none p-4 rounded-xl bg-black/30 backdrop-blur-md border border-white/10 z-50 drop-shadow-xl"
+                        >
+                            "{artifact.filteredText}"
+                        </motion.div>
+                    )}
+                </div>
+            );
+        };
+
+        const StoryTrees = () => {
+            const [artifacts, setArtifacts] = useState([]);
+            useEffect(() => {
+                GlobalForest.getArtifacts().then(setArtifacts);
+                const interval = setInterval(() => { GlobalForest.getArtifacts().then(setArtifacts); }, 5000); // Polling for network changes
+                return () => clearInterval(interval);
+            }, []);
+
+            return (
+                <div className="absolute inset-0 pointer-events-none overflow-hidden z-10">
+                    {artifacts.map(a => <LanternLeaf key={a.id} artifact={a} />)}
+                </div>
+            );
+        };
+
         // THE PEBBLE: Morphing between River Stone & Basalt depending on Gravity
         const ThePebble = () => {
             const { volume, gravity, isTyping } = useContext(MeiContext);
@@ -201,12 +291,12 @@
                     whileDrag={{ scale: 1.1, cursor: "grabbing" }}
                     dragConstraints={{ left: -300, right: 300, top: -300, bottom: 300 }}
                     dragElastic={gravity === 'heavy' ? 0.05 : 0.2} // Basalt heavily resists dragging
-                    className="absolute z-20 cursor-grab"
+                    className="absolute z-30 cursor-grab"
                     style={{ width: '120px', height: '90px', top: '12vh', right: '15vw' }}
                     animate={isTyping ? { scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] } : { y: gravity === 'heavy' ? [0, -2, 0] : [0, -10, 0], rotate: [0, 2, -2, 0] }}
                     transition={isTyping ? { duration: 0.6, repeat: Infinity } : { duration: 8, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                    <svg viewBox="0 0 100 80" className={`w-full h-full drop-shadow-2xl ${gravity === 'heavy' ? 'opacity-95' : 'opacity-80'}`} fill={pColor} style={{ filter: gravity === 'heavy' ? 'blur(0px)' : 'blur(1px)' }}>
+                    <svg viewBox="0 0 100 80" className={`w-full h-full drop-shadow-2xl pointer-events-auto ${gravity === 'heavy' ? 'opacity-95' : 'opacity-80'}`} fill={pColor} style={{ filter: gravity === 'heavy' ? 'blur(0px)' : 'blur(1px)' }}>
                         <motion.path 
                             animate={{ d: gravity === 'heavy' ? jaggedPath : smoothPath }}
                             transition={{ duration: 1.5, ease: "easeInOut" }}
@@ -272,6 +362,9 @@
                 if (newVolume === 'angry' || newVolume === 'overwhelmed') setGravity('heavy');
                 else if (newVolume === 'sad') setGravity('light');
                 else setGravity('neutral');
+                
+                // Silently plant the artifact in the Global Forest
+                GlobalForest.plantArtifact(userText, newVolume).catch(e => console.error("Global Forest err:", e));
                 
                 const lText = userText.toLowerCase();
 
@@ -354,8 +447,9 @@ CORE RULES:
                 setLoading(false);
             };
 
+            // Wrapped inside pointer-events-auto so inner inputs work while letting clicks passthrough outside 
             return (
-                <div className="w-full max-w-3xl h-full flex flex-col z-10 px-8 drop-shadow-md pb-8">
+                <div className="w-full max-w-3xl h-full flex flex-col z-10 px-8 drop-shadow-md pb-8 pointer-events-auto">
                     <div className="flex-1 overflow-y-auto w-full no-scrollbar px-2 flex flex-col">
                         <div className="flex-1 shrink-0 min-h-[15vh]"></div>
 
@@ -453,8 +547,11 @@ CORE RULES:
 
                     {interactionPhase === 'chat' && (
                         <>
+                            {!hidingPlace && <StoryTrees />}
                             {!hidingPlace && <ThePebble />}
-                            <div className={`absolute inset-0 flex items-center justify-center pointer-events-auto cursor-default transition-opacity duration-1000 ${hidingPlace ? 'opacity-15' : 'opacity-100'}`} onClick={(e) => e.stopPropagation()}>
+                            
+                            {/* Make absolute container pointer-events-none so StoryTrees behind it can receive clicks */}
+                            <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-1000 ${hidingPlace ? 'opacity-15' : 'opacity-100'}`} onClick={(e) => e.stopPropagation()}>
                                 <ChatFlow apiKey={apiKey} />
                             </div>
                         </>
