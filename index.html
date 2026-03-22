@@ -147,9 +147,9 @@
         // Gender Neutral Sensory Palette (Soft vs Hard)
         const emotionColors = {
             'neutral': '#E2E8F0', // Slate mix
-            'sad': '#E0E7FF', // Mist / Lavender 
-            'angry': '#1F2937', // Charcoal / Weathered Iron
-            'overwhelmed': '#4B5563' // Dark Wood Grain / Slate
+            'sad': '#D1D5DB', // Concrete Slate (No Lavender)
+            'angry': '#111827', // Hard Iron
+            'overwhelmed': '#374151' // Charcoal
         };
 
         // THE PARTICLE SYSTEM: Heavy Autumn Leaves vs Light Leaves
@@ -308,7 +308,7 @@
             };
 
             const emberColors = {
-                'angry': '#FCA5A5', 'sad': '#A78BFA', 'overwhelmed': '#FCD34D', 'neutral': '#E5E7EB'
+                'angry': '#FF7F50', 'sad': '#4682B4', 'overwhelmed': '#8BA989', 'neutral': '#CBD5E1'
             };
             const glowColor = emberColors[artifact.volume] || '#E5E7EB';
 
@@ -531,7 +531,7 @@ CORE RULES:
                         body: JSON.stringify({ 
                             systemInstruction: { parts: [{ text: systemPrompt }] },
                             contents: apiHistory, 
-                            generationConfig: { temperature: 0.6, maxOutputTokens: 300 } 
+                            generationConfig: { temperature: 0.6, maxOutputTokens: 800 } 
                         })
                     });
                     
